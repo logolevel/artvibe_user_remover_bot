@@ -1,4 +1,11 @@
 {
+  "name": "telegram-kick-bot",
+  "version": "1.0.0",
+  "description": "Bot to remove users after 2 months",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
