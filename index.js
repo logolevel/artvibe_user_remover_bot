@@ -36,6 +36,11 @@ bot.on('chat_member', async (ctx) => {
     }
 });
 
+bot.start((ctx) => {
+    console.log(`Command /start received from user ${ctx.from.id}`);
+    ctx.reply('Привет! Бот активен. Я отслеживаю вступления в канал и удаляю пользователей спустя 2 месяца.');
+});
+
 cron.schedule('0 0 * * *', async () => {
     console.log('Cron: Starting check for users who have been in the channel for 2 months...');
     
