@@ -33,7 +33,7 @@ async function getExpiredUsers() {
     const query = `
         SELECT user_id, chat_id 
         FROM channel_members 
-        WHERE join_date <= NOW() - INTERVAL '1 minute';
+        WHERE join_date <= NOW() - INTERVAL '2 months';
     `;
     const res = await pool.query(query);
     return res.rows;
