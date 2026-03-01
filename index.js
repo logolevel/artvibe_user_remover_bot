@@ -15,10 +15,22 @@ app.listen(PORT, () => {
     console.log(`Express server is running on port ${PORT}`);
 });
 
+bot.use((ctx, next) => {
+    console.log(`--- Received Telegram event: ${ctx.updateType} ---`);
+    return next();
+});
+
+bot.start((ctx) => {
+    console.log(`Command /start received from user ${ctx.from.id}`);
+    ctx.reply('Bot is active and ready to work!');
+});
+
 bot.on('chat_member', async (ctx) => {
     const update = ctx.chatMember;
     
-    const isJoined = update.old_chat_member.status === 'left' && 
+    console.log(`chat_member event! Old status: ${update.old_chat_member.status}, New status: ${update.new_chat_member.status}`);
+
+    const isJoined = update.old_chat_member.status !== 'member' && 
                      update.new_chat_member.status === 'member';
 
     if (isJoined) {
@@ -34,11 +46,6 @@ bot.on('chat_member', async (ctx) => {
             console.error(`Error adding user ${userId} to DB:`, error);
         }
     }
-});
-
-bot.start((ctx) => {
-    console.log(`Command /start received from user ${ctx.from.id}`);
-    ctx.reply('Привет! Бот активен. Я отслеживаю вступления в канал и удаляю пользователей спустя 2 месяца.');
 });
 
 cron.schedule('* * * * *', async () => {
@@ -67,7 +74,9 @@ cron.schedule('* * * * *', async () => {
     }
 });
 
-bot.launch()
+bot.launch({
+    allowedUpdates: ['chat_member', 'message']
+})
     .then(() => console.log('Telegram bot successfully started'))
     .catch(err => console.error('Error starting bot:', err));
 
