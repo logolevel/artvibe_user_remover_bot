@@ -49,7 +49,7 @@ bot.on('chat_member', async (ctx) => {
 });
 
 cron.schedule('0 0 * * *', async () => {
-    console.log('Cron: Starting check for users who have been in the channel for 2 months...');
+    console.log('Cron: Starting check for users who have been in the channel for 3 months...');
     
     try {
         const expiredUsers = await db.getExpiredUsers();
