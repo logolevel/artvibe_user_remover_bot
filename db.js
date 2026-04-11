@@ -29,13 +29,13 @@ async function addUser(userId, chatId) {
     await pool.query(query, [userId, chatId]);
 }
 
-async function getExpiredUsers() {
+async function getExpiredUsers(chatId, interval) {
     const query = `
         SELECT user_id, chat_id 
         FROM channel_members 
-        WHERE join_date <= NOW() - INTERVAL '3 months';
+        WHERE chat_id = $1 AND join_date <= NOW() - $2::interval;
     `;
-    const res = await pool.query(query);
+    const res = await pool.query(query, [chatId, interval]);
     return res.rows;
 }
 

@@ -7,6 +7,11 @@ const db = require('./db');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const app = express();
 
+const channelRules = [
+    { id: process.env.CHANNEL_1_ID, interval: '3 months' },
+    { id: process.env.CHANNEL_2_ID, interval: '3 weeks' }
+];
+
 db.initDB().catch(err => console.error('Database initialization error:', err));
 
 const PORT = process.env.PORT || 3000;
@@ -22,7 +27,7 @@ bot.use((ctx, next) => {
 
 bot.start((ctx) => {
     console.log(`Command /start received from user ${ctx.from.id}`);
-    ctx.reply('Bot is active and ready to work!');
+    ctx.reply('Bot is active and tracking multiple channels!');
 });
 
 bot.on('chat_member', async (ctx) => {
@@ -41,7 +46,7 @@ bot.on('chat_member', async (ctx) => {
         
         try {
             await db.addUser(userId, chatId);
-            console.log(`User ${userId} successfully added to DB`);
+            console.log(`User ${userId} successfully added to DB for channel ${chatId}`);
         } catch (error) {
             console.error(`Error adding user ${userId} to DB:`, error);
         }
@@ -49,28 +54,35 @@ bot.on('chat_member', async (ctx) => {
 });
 
 cron.schedule('0 0 * * *', async () => {
-    console.log('Cron: Starting check for users who have been in the channel for 3 months...');
+    console.log('Cron: Starting check for users in all configured channels...');
     
-    try {
-        const expiredUsers = await db.getExpiredUsers();
-        console.log(`Found users to remove: ${expiredUsers.length}`);
-
-        for (const user of expiredUsers) {
-            try {
-                await bot.telegram.banChatMember(user.chat_id, user.user_id);
-                await bot.telegram.unbanChatMember(user.chat_id, user.user_id);
-
-                await db.removeUser(user.user_id, user.chat_id);
-                
-                console.log(`Success: User ${user.user_id} removed from channel ${user.chat_id}`);
-            } catch (error) {
-                console.error(`Error kicking user ${user.user_id}:`, error.description || error.message);
-            }
-            
-            await new Promise(resolve => setTimeout(resolve, 300));
+    for (const channel of channelRules) {
+        if (!channel.id) {
+            console.log('Skipping undefined channel ID configuration...');
+            continue;
         }
-    } catch (error) {
-        console.error('Error during cron job execution:', error);
+
+        try {
+            const expiredUsers = await db.getExpiredUsers(channel.id, channel.interval);
+            console.log(`Found ${expiredUsers.length} users to remove in channel ${channel.id}`);
+
+            for (const user of expiredUsers) {
+                try {
+                    await bot.telegram.banChatMember(user.chat_id, user.user_id);
+                    await bot.telegram.unbanChatMember(user.chat_id, user.user_id);
+
+                    await db.removeUser(user.user_id, user.chat_id);
+                    
+                    console.log(`Success: User ${user.user_id} removed from channel ${user.chat_id}`);
+                } catch (error) {
+                    console.error(`Error kicking user ${user.user_id} in channel ${user.chat_id}:`, error.description || error.message);
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+        } catch (error) {
+            console.error(`Error processing channel ${channel.id}:`, error);
+        }
     }
 });
 
